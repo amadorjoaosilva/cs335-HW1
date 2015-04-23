@@ -29,6 +29,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
+#include <stdlib.h>
 #include <cstring>
 #include <cmath>
 #include <X11/Xlib.h>
@@ -68,6 +69,8 @@ struct Game {
     Particle *particle;
     int lastMouse[2];
     Shape box[5];
+    Shape circle;
+    //Shape Rectangle;
     int n;
     ~Game() { delete [] particle;}
     Game() {
@@ -82,6 +85,10 @@ struct Game {
             box[i].center.x = 120 + i*65;
             box[i].center.y = 500 - i*60;
         }
+        //declare a circle shape
+        circle.radius = 150.0;
+        circle.center.x = 525;
+        circle.center.y = -25;
     }
 };
 
@@ -281,6 +288,19 @@ void movement(Game *game)
 
         }
 
+        //collision with circle
+        float d0, d1, dist;
+        d0 = p->s.center.x - game->circle.center.x;
+        d1 = p->s.center.y - game->circle.center.y;
+        dist = sqrt(d0*d0 + d1*d1);
+        if(dist < game->circle.radius) {
+            //collision! apply penalty to the particle
+            p->s.center.x = game->circle.center.x + (game->circle.radius * d0/dist); 
+            p->s.center.y = game->circle.center.y + (game->circle.radius * d1/dist); 
+            p->velocity.x += d0/dist;
+            p->velocity.y += d1/dist;
+        }
+
 
         //check for off-screen
         if (p->s.center.y < 0.0) {
@@ -296,6 +316,7 @@ void movement(Game *game)
 void render(Game *game)
 {
     float w, h;
+       // Rectangle r;
     glClear(GL_COLOR_BUFFER_BIT);
     //Draw shapes...
 
@@ -316,6 +337,44 @@ void render(Game *game)
         glEnd();
         glPopMatrix();
     }
+
+    //box texts
+   /* for(int i= 0; i<5; i++) {
+        s= &game->box[i];
+        unsigned int cref = 0x00fff00;
+        r.left = s->center.x;
+        r.bot = s->center.y - 5;
+        r.center = 1;
+        if(i==0) { ggprint16(&r, 16, cref, "Requirements");}
+        if(i==1) { ggprint16(&r, 16, cref, "Design");}
+        if(i==2) { ggprint16(&r, 16, cref, "Coding");}
+        if(i==3) { ggprint16(&r, 16, cref, "Testing");}
+        if(i==4) { ggprint16(&r, 16, cref, "Maintenance");}
+
+    }*/
+
+    //draw circle
+    const int n=40;
+    static Vec vert[n];
+    static int firsttime = 1;
+    if(firsttime) {
+        float ang = 0.0, inc = (3.14159 * 2.0) / (float)n;
+        for(int i = 0; i < n; i++) {
+            vert[i].x = cos(ang) * game->circle.radius;
+            vert[i].y = sin(ang) * game->circle.radius;
+            ang += inc;
+        }
+        firsttime = 0;
+    }
+    glBegin(GL_LINE_LOOP);
+    for(int i = 0; i < n; i++) {
+        glVertex2i(game->circle.center.x + vert[i].x,
+                game->circle.center.y + vert[i].y);
+    }
+    glEnd();
+
+    
+
 
     //draw all particles here
     glPushMatrix();
